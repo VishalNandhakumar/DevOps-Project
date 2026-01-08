@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JS Turbo Racer 2026</title>
+    <style>
+        body { margin: 0; background: #222; font-family: sans-serif; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        #gameGui { position: absolute; color: white; text-align: center; }
+        canvas { border: 4px solid #444; background: #333; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .stats { position: absolute; top: 10px; left: 10px; color: yellow; font-size: 20px; font-weight: bold; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+    <div class="stats" id="stats">Score: 0</div>
+    <div id="gameGui">
+        <h1 id="msg">TURBO RACER</h1>
+        <button id="startBtn" onclick="startGame()" style="padding: 10px 20px; cursor: pointer; font-size: 18px;">START RACE</button>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const stats = document.getElementById("stats");
+    const msg = document.getElementById("msg");
+    const startBtn = document.getElementById("startBtn");
+
+    canvas.width = 400;
+    canvas.height = 600;
+
+    let gameActive = false;
+    let score = 0;
+    let speed = 5;
+    let frame = 0;
+
+    const player = { x: 175, y: 500, w: 50, h: 80, color: '#00ff00' };
+    let enemies = [];
+    let keys = {};
+
+    window.addEventListener("keydown", e => keys[e.code] = true);
+    window.addEventListener("keyup", e => keys[e.code] = false);
+
+    function startGame() {
+        gameActive = true;
+        score = 0;
+        speed = 5;
+        enemies = [];
+        player.x = 175;
+        document.getElementById("gameGui").style.display = "none";
+        update();
+    }
+
+    function spawnEnemy() {
+        const xPositions = [50, 150, 250, 300];
+        const randomX = xPositions[Math.floor(Math.random() * xPositions.length)];
+        enemies.push({ x: randomX, y: -100, w: 50, h: 80, color: 'red' });
+    }
+
+    function drawRoad() {
+        ctx.fillStyle = "#444";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Road Lines
+        ctx.strokeStyle = "#fff";
+        ctx.setLineDash([20, 20]);
+        ctx.lineWidth = 5;
+        ctx.lineDashOffset = -frame * speed;
+        ctx.beginPath();
+        ctx.moveTo(canvas.width/2, 0);
+        ctx.lineTo(canvas.width/2, canvas.height);
+        ctx.stroke();
+    }
+
+    function drawCar(car) {
+        // Body
+        ctx.fillStyle = car.color;
+        ctx.fillRect(car.x, car.y, car.w, car.h);
+        // Windows
+        ctx.fillStyle = "black";
+        ctx.fillRect(car.x + 5, car.y + 15, car.w - 10, 20);
+        // Wheels
+        ctx.fillStyle = "#111";
+        ctx.fillRect(car.x - 5, car.y + 10, 5, 20);
+        ctx.fillRect(car.x + car.w, car.y + 10, 5, 20);
+        ctx.fillRect(car.x - 5, car.y + 50, 5, 20);
+        ctx.fillRect(car.x + car.w, car.y + 50, 5, 20);
+    }
+
+    function update() {
+        if (!gameActive) return;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawRoad();
+
+        // Player Movement
+        if (keys["ArrowLeft"] && player.x > 10) player.x -= 7;
+        if (keys["ArrowRight"] && player.x < canvas.width - player.w - 10) player.x += 7;
+
+        drawCar(player);
+
+        // Enemy Logic
+        if (frame % 80 === 0) spawnEnemy();
+
+        enemies.forEach((enemy, index) => {
+            enemy.y += speed;
+            drawCar(enemy);
+
+            // Collision Detection
+            if (player.x < enemy.x + enemy.w &&
+                player.x + player.w > enemy.x &&
+                player.y < enemy.y + enemy.h &&
+                player.y + player.h > enemy.y) {
+                gameOver();
+            }
+
+            // Remove off-screen enemies & increase score
+            if (enemy.y > canvas.height) {
+                enemies.splice(index, 1);
+                score++;
+                speed += 0.1; // Difficulty ramp
+            }
+        });
+
+        stats.innerText = `Score: ${score}`;
+        frame++;
+        requestAnimationFrame(update);
+    }
+
+    function gameOver() {
+        gameActive = false;
+        document.getElementById("gameGui").style.display = "block";
+        msg.innerText = "CRASHED! FINAL SCORE: " + score;
+        startBtn.innerText = "RESTART RACE";
+    }
+
+    // Initial draw
+    drawRoad();
+    drawCar(player);
+</script>
+</body>
+</html>
